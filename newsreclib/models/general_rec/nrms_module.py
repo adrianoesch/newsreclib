@@ -108,11 +108,10 @@ class NRMSModule(AbstractRecommneder):
             assert isinstance(self.hparams.dual_loss_coef, float)
             assert self.hparams.loss == "dual_loss"
             self.ce_criterion, self.scl_criterion = self._get_loss(self.hparams.loss)
-
         # initialize text encoder
         if not self.hparams.use_plm:
             # pretrained embeddings + contextualization
-            assert isinstance(self.hparams.pretrained_embeddings_path, str)
+            assert isinstance(self.hparams.pretrained_embeddings_path, str), "Missing hparam 'pretrained_embeddings_path' !"
             pretrained_embeddings = self._init_embedding(
                 filepath=self.hparams.pretrained_embeddings_path
             )
@@ -218,14 +217,11 @@ class NRMSModule(AbstractRecommneder):
         self.test_categ_pers_metrics = categ_pers_metrics.clone(prefix="test/")
         self.test_sent_pers_metrics = sent_pers_metrics.clone(prefix="test/")
 
-    def forward(self, batch: RecommendationBatch) -> torch.Tensor:
+
+    def encode_user(self,batch):
         # encode history
         hist_news_vector = self.news_encoder(batch["x_hist"])
         hist_news_vector_agg, mask_hist = to_dense_batch(hist_news_vector, batch["batch_hist"])
-
-        # encode candidates
-        cand_news_vector = self.news_encoder(batch["x_cand"])
-        cand_news_vector_agg, _ = to_dense_batch(cand_news_vector, batch["batch_cand"])
 
         if not self.hparams.late_fusion:
             # encode user
@@ -238,9 +234,22 @@ class NRMSModule(AbstractRecommneder):
             )
             user_vector = torch.div(hist_news_vector_agg.sum(dim=1), hist_size.unsqueeze(dim=-1))
 
-        # click scores
+        return user_vector
+
+    def encode_news(self,batch):
+        # encode candidates
+        cand_news_vector = self.news_encoder(batch["x_cand"])
+        cand_news_vector_agg, _ = to_dense_batch(cand_news_vector, batch["batch_cand"])
+        return cand_news_vector_agg
+
+
+    def forward(self, batch: RecommendationBatch) -> torch.Tensor:
+        
+        user_vector = self.encode_user(batch)
+        cand_news_vector = self.encode_news(batch)
+    
         scores = self.click_predictor(
-            user_vector.unsqueeze(dim=1), cand_news_vector_agg.permute(0, 2, 1)
+            user_vector.unsqueeze(dim=1), cand_news_vector.permute(0, 2, 1)
         )
 
         return scores

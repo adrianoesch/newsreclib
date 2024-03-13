@@ -83,7 +83,8 @@ def task_wrapper(task_func: Callable) -> Callable:
         # things to always do after either success or exception
         finally:
             # display output dir path in terminal
-            log.info(f"Output dir: {cfg.paths.output_dir}")
+            if 'paths' in cfg:
+                log.info(f"Output dir: {cfg.paths.output_dir}")
 
             # always close wandb run (even if exception occurs so multirun won't fail)
             if find_spec("wandb"):  # check if wandb is installed

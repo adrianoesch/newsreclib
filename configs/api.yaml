@@ -1,0 +1,12 @@
+defaults:
+  - _self_
+  - model: nrms
+
+ckpts_path: /Users/adrianoesch/Documents/newsreclib/data/checkpoints/nrms_mindsmall_plm_celoss_bertsent_s42/last.ckpt
+
+hyper_param_path_replace: 
+  pattern: '/home/ubuntu/newsreclib/'
+  replacement: ''
+
+task_name: "api"
+
