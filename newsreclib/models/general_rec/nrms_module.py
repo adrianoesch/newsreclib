@@ -219,7 +219,7 @@ class NRMSModule(AbstractRecommneder):
         self.test_categ_pers_metrics = categ_pers_metrics.clone(prefix="test/")
         self.test_sent_pers_metrics = sent_pers_metrics.clone(prefix="test/")
         tracemalloc.start()
-        self.snapshot = tracemalloc.take_snapshot()
+        self.snapshot = None
 
     def forward(self, batch: RecommendationBatch) -> torch.Tensor:
         # encode history
@@ -246,7 +246,10 @@ class NRMSModule(AbstractRecommneder):
             user_vector.unsqueeze(dim=1), cand_news_vector_agg.permute(0, 2, 1)
         )
 
-        if randint(1,20) == 1:
+        if self.snapshot == None:
+            self.snapshot = tracemalloc.take_snapshot()
+
+        if randint(1,100) == 1:
             snap2 = tracemalloc.take_snapshot()
             top_stats = snap2.compare_to(self.snapshot, 'lineno')
             print("[ Top 10 differences ]")
