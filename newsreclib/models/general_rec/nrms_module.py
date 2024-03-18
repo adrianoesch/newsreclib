@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Tuple
 
-import torch
+import torch, tracemalloc
+from numpy.random import randint
 from torch_geometric.utils import to_dense_batch
 from torchmetrics import MetricCollection
 from torchmetrics.classification import AUROC
@@ -217,6 +218,8 @@ class NRMSModule(AbstractRecommneder):
         self.test_sent_div_metrics = sent_div_metrics.clone(prefix="test/")
         self.test_categ_pers_metrics = categ_pers_metrics.clone(prefix="test/")
         self.test_sent_pers_metrics = sent_pers_metrics.clone(prefix="test/")
+        tracemalloc.start()
+        self.snapshot = tracemalloc.take_snapshot()
 
     def forward(self, batch: RecommendationBatch) -> torch.Tensor:
         # encode history
@@ -242,6 +245,15 @@ class NRMSModule(AbstractRecommneder):
         scores = self.click_predictor(
             user_vector.unsqueeze(dim=1), cand_news_vector_agg.permute(0, 2, 1)
         )
+
+        if randint(1,20) == 1:
+            snap2 = tracemalloc.take_snapshot()
+            top_stats = snap2.compare_to(self.snapshot, 'lineno')
+            print("[ Top 10 differences ]")
+            for stat in top_stats[:10]:
+                print(stat)
+
+            self.snapshot = snap2
 
         return scores
 
